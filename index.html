@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Marginal — a blog platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F6F4EF; --paper-raised: #FFFFFF; --ink: #221F26; --ink-soft: #635D6B; --ink-faint: #9B95A3;
+    --rule: #DEDAD1; --rule-strong: #C7C1B5;
+    --plum: #7A3350; --plum-hover: #64293F; --plum-soft: #F1DEE6;
+    --indigo: #3D4E86; --indigo-soft: #DEE3F0;
+    --amber: #B8843A; --danger: #A3402F; --danger-soft: #F1DAD4;
+    --shadow: rgba(34,31,38,.08); --focus: #3D4E86;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #19171C; --paper-raised: #221F26; --ink: #EFEDF0; --ink-soft: #ABA5B2; --ink-faint: #726C7A;
+      --rule: #302C34; --rule-strong: #403A45;
+      --plum: #C97FA0; --plum-hover: #D695B3; --plum-soft: #34222B;
+      --indigo: #8B9AD1; --indigo-soft: #232A42;
+      --amber: #D9A65E; --danger: #D97C6A; --danger-soft: #3A2521;
+      --shadow: rgba(0,0,0,.4); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #19171C; --paper-raised: #221F26; --ink: #EFEDF0; --ink-soft: #ABA5B2; --ink-faint: #726C7A;
+    --rule: #302C34; --rule-strong: #403A45;
+    --plum: #C97FA0; --plum-hover: #D695B3; --plum-soft: #34222B;
+    --indigo: #8B9AD1; --indigo-soft: #232A42;
+    --amber: #D9A65E; --danger: #D97C6A; --danger-soft: #3A2521;
+    --shadow: rgba(0,0,0,.4); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    background: var(--paper); color: var(--ink); font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  h1, h2, h3, .serif { font-family: 'Newsreader', Georgia, serif; }
+  button, input, textarea, select { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button { cursor: pointer; }
+  .hidden { display: none !important; }
+
+  /* ---------- auth ---------- */
+  .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px 20px; }
+  .auth-card { width: 100%; max-width: 380px; }
+  .auth-mark { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .auth-mark .glyph { font-size: 26px; }
+  .auth-title { font-size: 33px; font-weight: 500; font-style: italic; letter-spacing: -0.01em; margin: 0; }
+  .auth-tagline { color: var(--ink-soft); font-size: 14.5px; margin: 0 0 26px; line-height: 1.55; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 6px; font-weight: 500; }
+  .field input, .field textarea { width: 100%; border: 1.5px solid var(--rule-strong); background: var(--paper-raised); color: var(--ink); font-size: 15px; padding: 9px 10px; border-radius: 4px; }
+  .field input:focus, .field textarea:focus { border-color: var(--plum); outline: none; }
+  .field-error { color: var(--danger); font-size: 12.5px; margin-top: 6px; min-height: 1px; }
+  .btn-primary { width: 100%; background: var(--plum); color: #fff; border: none; border-radius: 4px; padding: 12px 18px; font-size: 15px; font-weight: 600; margin-top: 6px; }
+  .btn-primary:hover { background: var(--plum-hover); }
+  .auth-switch { text-align: center; margin-top: 20px; font-size: 13.5px; color: var(--ink-soft); }
+  .auth-switch button { background: none; border: none; color: var(--plum); font-weight: 600; font-size: 13.5px; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+  .auth-note { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--ink-faint); line-height: 1.5; }
+  .seed-hint { background: var(--indigo-soft); border: 1px solid var(--indigo); color: var(--ink); border-radius: 5px; padding: 10px 12px; font-size: 12.5px; margin-bottom: 18px; line-height: 1.5; }
+  .seed-hint b { color: var(--indigo); }
+
+  /* ---------- shell ---------- */
+  #appScreen { min-height: 100vh; display: flex; flex-direction: column; }
+  .topbar { display: flex; align-items: center; gap: 18px; padding: 16px 28px; border-bottom: 1px solid var(--rule); background: var(--paper-raised); position: sticky; top: 0; z-index: 20; flex-wrap: wrap; }
+  .brand { display: flex; align-items: baseline; gap: 8px; font-size: 21px; font-weight: 500; font-style: italic; margin-right: 8px; }
+  .brand .glyph { font-style: normal; font-size: 19px; }
+  .main-nav { display: flex; gap: 4px; }
+  .main-nav button { background: none; border: none; padding: 8px 12px; border-radius: 5px; font-size: 14px; color: var(--ink-soft); font-weight: 500; }
+  .main-nav button:hover { background: var(--paper); color: var(--ink); }
+  .main-nav button.active { background: var(--plum-soft); color: var(--plum); font-weight: 600; }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .new-post-btn { background: var(--plum); color: #fff; border: none; border-radius: 5px; padding: 9px 15px; font-size: 13.5px; font-weight: 600; }
+  .new-post-btn:hover { background: var(--plum-hover); }
+  .user-chip { font-size: 13px; color: var(--ink-soft); }
+  .logout-btn { background: none; border: none; color: var(--ink-faint); font-size: 12.5px; text-decoration: underline; text-underline-offset: 2px; }
+  .logout-btn:hover { color: var(--danger); }
+
+  .view { flex: 1; padding: 30px 28px 70px; max-width: 760px; margin: 0 auto; width: 100%; }
+  .view-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; gap: 14px; flex-wrap: wrap; }
+  .view-title { font-size: 28px; font-weight: 500; margin: 0; }
+  .search-box { position: relative; width: 240px; max-width: 100%; }
+  .search-box input { width: 100%; border: 1px solid var(--rule); background: var(--paper-raised); border-radius: 5px; padding: 8px 12px 8px 30px; font-size: 13.5px; color: var(--ink); }
+  .search-box input:focus { border-color: var(--plum); outline: none; }
+  .search-box .icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-faint); font-size: 13px; }
+
+  /* ---------- feed (index list, not cards) ---------- */
+  .feed-item { padding: 22px 0; border-bottom: 1px solid var(--rule); cursor: pointer; }
+  .feed-item:first-child { padding-top: 0; }
+  .feed-item:hover .feed-title { color: var(--plum); }
+  .feed-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-faint); margin-bottom: 6px; }
+  .feed-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-faint); }
+  .feed-title { font-size: 22px; font-weight: 500; margin: 0 0 6px; line-height: 1.3; transition: color .12s ease; }
+  .feed-excerpt { font-size: 14.5px; color: var(--ink-soft); line-height: 1.6; margin: 0 0 10px; }
+  .feed-foot { display: flex; align-items: center; gap: 14px; font-size: 12.5px; color: var(--ink-faint); }
+  .tag-pill { display: inline-block; background: var(--indigo-soft); color: var(--indigo); font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; margin-right: 5px; }
+
+  /* ---------- post detail ---------- */
+  .back-link { background: none; border: none; color: var(--ink-soft); font-size: 13.5px; padding: 0; margin-bottom: 18px; display: inline-flex; align-items: center; gap: 5px; }
+  .back-link:hover { color: var(--plum); }
+  .post-title { font-size: 34px; font-weight: 500; line-height: 1.2; margin: 0 0 10px; }
+  .post-meta { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-faint); margin-bottom: 18px; flex-wrap: wrap; }
+  .post-owner-actions { display: flex; gap: 8px; margin-left: auto; }
+  .link-btn { background: none; border: none; color: var(--ink-soft); font-size: 12.5px; padding: 3px 0; text-decoration: underline; text-underline-offset: 2px; }
+  .link-btn:hover { color: var(--plum); }
+  .link-btn.danger:hover { color: var(--danger); }
+  .post-tags { margin-bottom: 20px; }
+  .post-content { font-size: 17px; line-height: 1.75; color: var(--ink); margin-bottom: 8px; white-space: pre-wrap; }
+  .post-content p { margin: 0 0 1.1em; }
+
+  .comments-section { margin-top: 42px; padding-top: 26px; border-top: 1px solid var(--rule-strong); }
+  .comments-title { font-size: 19px; font-weight: 600; margin: 0 0 18px; font-family: 'Work Sans', sans-serif; }
+  .comment { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+  .comment-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--plum-soft); color: var(--plum); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .comment-body { flex: 1; min-width: 0; }
+  .comment-head { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; flex-wrap: wrap; }
+  .comment-author { font-size: 13.5px; font-weight: 600; }
+  .comment-date { font-size: 11.5px; color: var(--ink-faint); }
+  .comment-text { font-size: 14px; color: var(--ink); line-height: 1.55; margin: 0; }
+  .comment-del { background: none; border: none; color: var(--ink-faint); font-size: 12px; margin-left: auto; }
+  .comment-del:hover { color: var(--danger); }
+  .comment-form { margin-top: 18px; }
+  .comment-form textarea { width: 100%; border: 1.5px solid var(--rule-strong); border-radius: 5px; padding: 10px 12px; font-size: 14px; background: var(--paper-raised); color: var(--ink); min-height: 64px; resize: vertical; }
+  .comment-form textarea:focus { border-color: var(--plum); outline: none; }
+  .comment-form-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+  .btn-solid-sm { background: var(--plum); color: #fff; border: none; border-radius: 4px; padding: 8px 16px; font-size: 13.5px; font-weight: 600; }
+  .btn-solid-sm:hover { background: var(--plum-hover); }
+
+  /* ---------- composer ---------- */
+  .composer-field { margin-bottom: 18px; }
+  .composer-field label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); font-weight: 600; margin-bottom: 8px; }
+  #composeTitle { width: 100%; border: none; border-bottom: 2px solid var(--rule-strong); background: transparent; color: var(--ink); font-family: 'Newsreader', serif; font-size: 30px; font-weight: 500; padding: 6px 2px; }
+  #composeTitle:focus { border-color: var(--plum); outline: none; }
+  #composeTags { width: 100%; border: 1px solid var(--rule-strong); border-radius: 4px; background: var(--paper-raised); color: var(--ink); font-size: 13.5px; padding: 8px 10px; }
+  #composeTags:focus { border-color: var(--plum); outline: none; }
+  #composeBody { width: 100%; border: 1px solid var(--rule-strong); border-radius: 5px; background: var(--paper-raised); color: var(--ink); font-size: 16px; line-height: 1.7; padding: 14px; min-height: 320px; resize: vertical; }
+  #composeBody:focus { border-color: var(--plum); outline: none; }
+  .composer-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .word-count { font-size: 12.5px; color: var(--ink-faint); }
+  .composer-buttons { display: flex; gap: 10px; }
+  .btn-ghost { background: none; border: 1px solid var(--rule-strong); color: var(--ink-soft); border-radius: 4px; padding: 9px 16px; font-size: 14px; font-weight: 500; }
+  .btn-ghost:hover { background: var(--paper); }
+  .btn-solid { background: var(--plum); color: #fff; border: none; border-radius: 4px; padding: 9px 18px; font-size: 14px; font-weight: 600; }
+  .btn-solid:hover { background: var(--plum-hover); }
+
+  .empty-state { text-align: center; padding: 70px 20px; color: var(--ink-faint); }
+  .empty-state .glyph { font-size: 30px; display: block; margin-bottom: 12px; }
+  .empty-state .lede { font-size: 16px; color: var(--ink-soft); font-weight: 500; }
+
+  @media (max-width: 700px) {
+    .topbar { padding: 14px 16px; gap: 10px; }
+    .main-nav { order: 3; flex-basis: 100%; overflow-x: auto; }
+    .view { padding: 20px 18px 70px; }
+    .view-title { font-size: 22px; }
+    .post-title { font-size: 27px; }
+    #composeTitle { font-size: 24px; }
+    .search-box { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- AUTH -->
+  <div class="auth-wrap" id="authScreen">
+    <div class="auth-card">
+      <div class="auth-mark"><span class="glyph">✒️</span><h1 class="auth-title">Marginal</h1></div>
+      <p class="auth-tagline" id="authTagline">Notes worth keeping in the margin. Sign in to read and write.</p>
+
+      <div class="seed-hint">Browse right away with <b>demo</b> / <b>demo1234</b>, or create your own account below.</div>
+
+      <form id="loginForm">
+        <div class="field"><label for="loginUser">Username</label><input type="text" id="loginUser" autocomplete="username" required></div>
+        <div class="field"><label for="loginPass">Password</label><input type="password" id="loginPass" autocomplete="current-password" required></div>
+        <div class="field-error" id="loginError"></div>
+        <button type="submit" class="btn-primary">Sign in</button>
+      </form>
+
+      <form id="registerForm" class="hidden">
+        <div class="field"><label for="regDisplay">Display name</label><input type="text" id="regDisplay" required></div>
+        <div class="field"><label for="regUser">Choose a username</label><input type="text" id="regUser" autocomplete="username" required></div>
+        <div class="field"><label for="regPass">Choose a password</label><input type="password" id="regPass" autocomplete="new-password" required></div>
+        <div class="field-error" id="registerError"></div>
+        <button type="submit" class="btn-primary">Create account</button>
+      </form>
+
+      <div class="auth-switch">
+        <span id="switchToRegisterWrap">New here? <button type="button" id="switchToRegister">Start writing</button></span>
+        <span id="switchToLoginWrap" class="hidden">Already have an account? <button type="button" id="switchToLogin">Sign in</button></span>
+      </div>
+      <div class="auth-note">This runs entirely in your browser as a frontend demo — posts, comments and accounts live in localStorage rather than a real database, standing in for the RESTful API + database layer a production version would use.</div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="appScreen" class="hidden">
+    <div class="topbar">
+      <div class="brand"><span class="glyph">✒️</span><span>Marginal</span></div>
+      <div class="main-nav" id="mainNav"></div>
+      <div class="topbar-right">
+        <button class="new-post-btn" id="newPostBtn">＋ New post</button>
+        <span class="user-chip" id="userChip"></span>
+        <button class="logout-btn" id="logoutBtn">Sign out</button>
+      </div>
+    </div>
+    <div class="view" id="view"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var state = { user: null, name: "", view: "feed", search: "", editingId: null, openPostId: null };
+
+  function safeGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function safeSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function hash(str) { var h = 5381; for (var i = 0; i < str.length; i++) { h = ((h << 5) + h) + str.charCodeAt(i); h = h | 0; } return String(h); }
+  function uid(pre) { return pre + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function escapeHtml(str) { var d = document.createElement("div"); d.textContent = str; return d.innerHTML; }
+  function initials(name) { return (name || "?").trim().split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join("").toUpperCase(); }
+  function timeAgo(ts) {
+    var s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return "just now";
+    var m = Math.floor(s / 60); if (m < 60) return m + "m ago";
+    var h = Math.floor(m / 60); if (h < 24) return h + "h ago";
+    var d = Math.floor(h / 24); if (d < 30) return d + "d ago";
+    return new Date(ts).toLocaleDateString();
+  }
+  function wordCount(str) { var t = str.trim(); return t ? t.split(/\s+/).length : 0; }
+  function readMins(str) { return Math.max(1, Math.round(wordCount(str) / 200)); }
+  function excerptOf(str) { var t = str.trim().replace(/\s+/g, " "); return t.length > 160 ? t.slice(0, 160) + "…" : t; }
+
+  var SEED_USERS = { demo: { hash: hash("demo1234"), name: "Demo Writer", createdAt: Date.now() } };
+  var now = Date.now();
+  var SEED_POSTS = [
+    { id: "post1", authorUsername: "demo", authorName: "Demo Writer", title: "Why I keep a paper notebook next to my laptop", tags: ["writing", "process"], content: "Every draft I've ever finished started as a mess of handwriting I could barely read back.\n\nThere's something about the friction of a pen that keeps me from editing before I've even had the idea. The keyboard is too fast — it lets me delete a half-formed thought before I've seen where it was going.\n\nSo now the notebook comes first, and the screen comes second, once there's something worth typing.", createdAt: now - 1000 * 60 * 60 * 26 },
+    { id: "post2", authorUsername: "demo", authorName: "Demo Writer", title: "A short list of things nobody tells you about side projects", tags: ["projects"], content: "They take three times longer than the estimate you made in a burst of enthusiasm at 11pm.\n\nThe boring 20% — deployment, error handling, the settings page nobody asked for — is still 80% of the actual work.\n\nAnd yet, finishing one, even a small one, changes how you think about the next idea entirely.", createdAt: now - 1000 * 60 * 60 * 74 },
+    { id: "post3", authorUsername: "demo", authorName: "Demo Writer", title: "On reading things twice", tags: ["reading", "notes"], content: "The first read is for the plot, or the argument, or just to see where it's going.\n\nThe second read is where the actual book shows up — the sentence you skimmed past because you were in a hurry to find out what happens, the structural choice you didn't notice because you didn't yet know the ending.\n\nMost things I recommend to people, I've read twice. That's usually the tell.", createdAt: now - 1000 * 60 * 60 * 150 }
+  ];
+  var SEED_COMMENTS = [
+    { id: "c1", postId: "post1", authorUsername: "riley", authorName: "Riley Chen", content: "This is exactly why I still buy the cheap notebooks in bulk. No pressure to make it precious.", createdAt: now - 1000 * 60 * 60 * 20 },
+    { id: "c2", postId: "post1", authorUsername: "sam", authorName: "Sam Okafor", content: "Tried this for a week and it genuinely slowed my thinking down in a good way.", createdAt: now - 1000 * 60 * 60 * 10 },
+    { id: "c3", postId: "post2", authorUsername: "riley", authorName: "Riley Chen", content: "The settings page nobody asked for is so real.", createdAt: now - 1000 * 60 * 60 * 40 }
+  ];
+
+  var api = {
+    loadUsers: function () { try { return JSON.parse(safeGet("marginal_users") || "null") || SEED_USERS; } catch (e) { return SEED_USERS; } },
+    saveUsers: function (u) { safeSet("marginal_users", JSON.stringify(u)); },
+    loadPosts: function () { try { return JSON.parse(safeGet("marginal_posts") || "null") || SEED_POSTS.slice(); } catch (e) { return SEED_POSTS.slice(); } },
+    savePosts: function (p) { safeSet("marginal_posts", JSON.stringify(p)); },
+    loadComments: function () { try { return JSON.parse(safeGet("marginal_comments") || "null") || SEED_COMMENTS.slice(); } catch (e) { return SEED_COMMENTS.slice(); } },
+    saveComments: function (c) { safeSet("marginal_comments", JSON.stringify(c)); }
+  };
+  function ensureSeed() {
+    if (!safeGet("marginal_users")) api.saveUsers(SEED_USERS);
+    if (!safeGet("marginal_posts")) api.savePosts(SEED_POSTS.slice());
+    if (!safeGet("marginal_comments")) api.saveComments(SEED_COMMENTS.slice());
+  }
+
+  var posts = [], comments = [];
+
+  /* ---------- auth ---------- */
+  var authScreen = document.getElementById("authScreen");
+  var appScreen = document.getElementById("appScreen");
+  var loginForm = document.getElementById("loginForm");
+  var registerForm = document.getElementById("registerForm");
+  var loginError = document.getElementById("loginError");
+  var registerError = document.getElementById("registerError");
+
+  document.getElementById("switchToRegister").addEventListener("click", function () {
+    loginForm.classList.add("hidden"); registerForm.classList.remove("hidden");
+    document.getElementById("switchToRegisterWrap").classList.add("hidden");
+    document.getElementById("switchToLoginWrap").classList.remove("hidden");
+  });
+  document.getElementById("switchToLogin").addEventListener("click", function () {
+    registerForm.classList.add("hidden"); loginForm.classList.remove("hidden");
+    document.getElementById("switchToLoginWrap").classList.add("hidden");
+    document.getElementById("switchToRegisterWrap").classList.remove("hidden");
+  });
+
+  loginForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    loginError.textContent = "";
+    var username = document.getElementById("loginUser").value.trim();
+    var password = document.getElementById("loginPass").value;
+    var users = api.loadUsers();
+    if (!users[username]) { loginError.textContent = "No account found for that username."; return; }
+    if (users[username].hash !== hash(password)) { loginError.textContent = "That password doesn't match."; return; }
+    signIn(username, users[username].name);
+  });
+
+  registerForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    registerError.textContent = "";
+    var display = document.getElementById("regDisplay").value.trim();
+    var username = document.getElementById("regUser").value.trim();
+    var password = document.getElementById("regPass").value;
+    if (!display) { registerError.textContent = "Add a display name."; return; }
+    if (username.length < 2) { registerError.textContent = "Username needs at least 2 characters."; return; }
+    if (password.length < 4) { registerError.textContent = "Password needs at least 4 characters."; return; }
+    var users = api.loadUsers();
+    if (users[username]) { registerError.textContent = "That username is already taken."; return; }
+    users[username] = { hash: hash(password), name: display, createdAt: Date.now() };
+    api.saveUsers(users);
+    signIn(username, display);
+  });
+
+  function signIn(username, name) {
+    state.user = username; state.name = name;
+    safeSet("marginal_session", JSON.stringify({ u: username, n: name }));
+    posts = api.loadPosts(); comments = api.loadComments();
+    document.getElementById("userChip").textContent = name;
+    authScreen.classList.add("hidden"); appScreen.classList.remove("hidden");
+    buildNav();
+    setView("feed");
+  }
+  document.getElementById("logoutBtn").addEventListener("click", function () {
+    safeSet("marginal_session", "");
+    state.user = null;
+    appScreen.classList.add("hidden"); authScreen.classList.remove("hidden");
+    loginForm.reset(); registerForm.reset(); loginError.textContent = ""; registerError.textContent = "";
+  });
+
+  /* ---------- nav ---------- */
+  function buildNav() {
+    var nav = document.getElementById("mainNav");
+    nav.innerHTML = "";
+    [{ key: "feed", label: "Feed" }, { key: "myposts", label: "My posts" }].forEach(function (it) {
+      var b = document.createElement("button");
+      b.textContent = it.label; b.dataset.view = it.key;
+      b.addEventListener("click", function () { setView(it.key); });
+      nav.appendChild(b);
+    });
+    highlightNav();
+  }
+  function highlightNav() {
+    [].slice.call(document.querySelectorAll("#mainNav button")).forEach(function (b) { b.classList.toggle("active", b.dataset.view === state.view); });
+  }
+  function setView(v, arg) {
+    state.view = v;
+    if (v === "post") state.openPostId = arg;
+    if (v === "compose") state.editingId = arg || null;
+    highlightNav();
+    render();
+    window.scrollTo(0, 0);
+  }
+  document.getElementById("newPostBtn").addEventListener("click", function () { setView("compose", null); });
+
+  /* ---------- CRUD: posts ---------- */
+  function createOrUpdatePost(title, tags, content) {
+    if (state.editingId) {
+      var p = posts.find(function (x) { return x.id === state.editingId; });
+      p.title = title; p.tags = tags; p.content = content; p.updatedAt = Date.now();
+    } else {
+      posts.unshift({ id: uid("post"), authorUsername: state.user, authorName: state.name, title: title, tags: tags, content: content, createdAt: Date.now() });
+    }
+    api.savePosts(posts);
+  }
+  function deletePost(id) {
+    posts = posts.filter(function (x) { return x.id !== id; });
+    comments = comments.filter(function (c) { return c.postId !== id; });
+    api.savePosts(posts); api.saveComments(comments);
+  }
+
+  /* ---------- CRUD: comments ---------- */
+  function addComment(postId, content) {
+    comments.push({ id: uid("c"), postId: postId, authorUsername: state.user, authorName: state.name, content: content, createdAt: Date.now() });
+    api.saveComments(comments);
+  }
+  function deleteComment(id) {
+    comments = comments.filter(function (c) { return c.id !== id; });
+    api.saveComments(comments);
+  }
+  function commentsFor(postId) { return comments.filter(function (c) { return c.postId === postId; }).sort(function (a, b) { return a.createdAt - b.createdAt; }); }
+
+  /* ---------- render ---------- */
+  function render() {
+    var view = document.getElementById("view");
+    if (state.view === "feed") renderFeed(view, posts.slice().sort(function (a, b) { return b.createdAt - a.createdAt; }));
+    else if (state.view === "myposts") renderFeed(view, posts.filter(function (p) { return p.authorUsername === state.user; }).sort(function (a, b) { return b.createdAt - a.createdAt; }), true);
+    else if (state.view === "post") renderPost(view);
+    else if (state.view === "compose") renderComposer(view);
+  }
+
+  function renderFeed(view, list, mine) {
+    view.innerHTML =
+      '<div class="view-header"><h2 class="view-title">' + (mine ? "My posts" : "Feed") + '</h2>' +
+      '<div class="search-box"><span class="icon">⌕</span><input type="text" id="feedSearch" placeholder="Search posts…" value="' + escapeHtml(state.search) + '"></div></div>' +
+      '<div id="feedList"></div>';
+    document.getElementById("feedSearch").addEventListener("input", function (e) { state.search = e.target.value; renderFeedList(list, mine); });
+    renderFeedList(list, mine);
+  }
+  function renderFeedList(list, mine) {
+    var container = document.getElementById("feedList");
+    var filtered = state.search
+      ? list.filter(function (p) { return (p.title + " " + p.content + " " + (p.tags || []).join(" ")).toLowerCase().indexOf(state.search.toLowerCase()) !== -1; })
+      : list;
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="empty-state"><span class="glyph">' + (mine ? "🖋" : "🔍") + '</span><p class="lede">' + (mine ? "You haven't published anything yet." : "No posts match.") + '</p>' + (mine ? '<p>Click "New post" to write your first one.</p>' : '') + '</div>';
+      return;
+    }
+    container.innerHTML = "";
+    filtered.forEach(function (p) {
+      var cCount = commentsFor(p.id).length;
+      var item = document.createElement("div"); item.className = "feed-item";
+      item.innerHTML =
+        '<div class="feed-meta">' + escapeHtml(p.authorName) + '<span class="dot"></span>' + timeAgo(p.createdAt) + '<span class="dot"></span>' + readMins(p.content) + ' min read</div>' +
+        '<p class="feed-title">' + escapeHtml(p.title) + '</p>' +
+        '<p class="feed-excerpt">' + escapeHtml(excerptOf(p.content)) + '</p>' +
+        '<div class="feed-foot">' + (p.tags || []).map(function (t) { return '<span class="tag-pill">' + escapeHtml(t) + '</span>'; }).join("") + '<span>' + cCount + ' comment' + (cCount === 1 ? "" : "s") + '</span></div>';
+      item.addEventListener("click", function () { setView("post", p.id); });
+      container.appendChild(item);
+    });
+  }
+
+  function renderPost(view) {
+    var p = posts.find(function (x) { return x.id === state.openPostId; });
+    if (!p) { setView("feed"); return; }
+    var mine = p.authorUsername === state.user;
+    var cList = commentsFor(p.id);
+    view.innerHTML =
+      '<button class="back-link" id="backBtn">← Back</button>' +
+      '<h1 class="post-title">' + escapeHtml(p.title) + '</h1>' +
+      '<div class="post-meta"><span>' + escapeHtml(p.authorName) + '</span><span>·</span><span>' + timeAgo(p.createdAt) + '</span><span>·</span><span>' + readMins(p.content) + ' min read</span>' +
+      (mine ? '<div class="post-owner-actions"><button class="link-btn" id="editBtn">Edit</button><button class="link-btn danger" id="delBtn">Delete</button></div>' : '') +
+      '</div>' +
+      (p.tags && p.tags.length ? '<div class="post-tags">' + p.tags.map(function (t) { return '<span class="tag-pill">' + escapeHtml(t) + '</span>'; }).join("") + '</div>' : '') +
+      '<div class="post-content">' + escapeHtml(p.content) + '</div>' +
+      '<div class="comments-section">' +
+        '<h3 class="comments-title">' + cList.length + ' comment' + (cList.length === 1 ? "" : "s") + '</h3>' +
+        '<div id="commentsList"></div>' +
+        '<div class="comment-form"><textarea id="commentInput" placeholder="Add a comment…"></textarea>' +
+        '<div class="comment-form-actions"><button class="btn-solid-sm" id="postCommentBtn">Comment</button></div></div>' +
+      '</div>';
+
+    document.getElementById("backBtn").addEventListener("click", function () { setView(state.view === "post" ? "feed" : state.view); history.length; window.history.length; setView("feed"); });
+    if (mine) {
+      document.getElementById("editBtn").addEventListener("click", function () { setView("compose", p.id); });
+      document.getElementById("delBtn").addEventListener("click", function () { deletePost(p.id); setView("feed"); });
+    }
+    var cListEl = document.getElementById("commentsList");
+    if (cList.length === 0) {
+      cListEl.innerHTML = '<p style="color:var(--ink-faint);font-size:13.5px;">No comments yet — be the first.</p>';
+    } else {
+      cListEl.innerHTML = "";
+      cList.forEach(function (c) {
+        var row = document.createElement("div"); row.className = "comment";
+        row.innerHTML =
+          '<div class="comment-avatar">' + initials(c.authorName) + '</div>' +
+          '<div class="comment-body"><div class="comment-head"><span class="comment-author">' + escapeHtml(c.authorName) + '</span><span class="comment-date">' + timeAgo(c.createdAt) + '</span>' +
+          (c.authorUsername === state.user ? '<button class="comment-del" data-cid="' + c.id + '">Delete</button>' : '') + '</div>' +
+          '<p class="comment-text">' + escapeHtml(c.content) + '</p></div>';
+        if (c.authorUsername === state.user) {
+          row.querySelector(".comment-del").addEventListener("click", function () { deleteComment(c.id); renderPost(view); });
+        }
+        cListEl.appendChild(row);
+      });
+    }
+    document.getElementById("postCommentBtn").addEventListener("click", function () {
+      var val = document.getElementById("commentInput").value.trim();
+      if (!val) return;
+      addComment(p.id, val);
+      renderPost(view);
+    });
+  }
+
+  function renderComposer(view) {
+    var editing = !!state.editingId;
+    var p = editing ? posts.find(function (x) { return x.id === state.editingId; }) : null;
+    view.innerHTML =
+      '<button class="back-link" id="composeBack">← Cancel</button>' +
+      '<div class="composer-field"><input type="text" id="composeTitle" placeholder="Post title" value="' + (p ? escapeHtml(p.title) : "") + '"></div>' +
+      '<div class="composer-field"><label>Tags (comma separated)</label><input type="text" id="composeTags" placeholder="writing, notes" value="' + (p && p.tags ? escapeHtml(p.tags.join(", ")) : "") + '"></div>' +
+      '<div class="composer-field"><label>Body</label><textarea id="composeBody" placeholder="Write here…">' + (p ? escapeHtml(p.content) : "") + '</textarea></div>' +
+      '<div class="field-error" id="composeError"></div>' +
+      '<div class="composer-actions"><span class="word-count" id="wordCount">0 words</span>' +
+      '<div class="composer-buttons"><button class="btn-ghost" id="composeCancel">Cancel</button><button class="btn-solid" id="composeSave">' + (editing ? "Save changes" : "Publish") + '</button></div></div>';
+
+    var bodyEl = document.getElementById("composeBody");
+    var wc = document.getElementById("wordCount");
+    function updateWc() { wc.textContent = wordCount(bodyEl.value) + " words"; }
+    updateWc();
+    bodyEl.addEventListener("input", updateWc);
+
+    document.getElementById("composeBack").addEventListener("click", function () { setView(editing ? "post" : "feed", editing ? p.id : null); });
+    document.getElementById("composeCancel").addEventListener("click", function () { setView(editing ? "post" : "feed", editing ? p.id : null); });
+    document.getElementById("composeSave").addEventListener("click", function () {
+      var title = document.getElementById("composeTitle").value.trim();
+      var tagsRaw = document.getElementById("composeTags").value.trim();
+      var content = bodyEl.value.trim();
+      var err = document.getElementById("composeError");
+      if (!title) { err.textContent = "Give the post a title."; return; }
+      if (!content) { err.textContent = "The post needs some content."; return; }
+      var tags = tagsRaw ? tagsRaw.split(",").map(function (t) { return t.trim(); }).filter(Boolean) : [];
+      var idToOpen = state.editingId;
+      createOrUpdatePost(title, tags, content);
+      setView("post", idToOpen || posts[0].id);
+    });
+  }
+
+  /* ---------- resume session ---------- */
+  (function init() {
+    ensureSeed();
+    var raw = safeGet("marginal_session");
+    if (raw) {
+      try {
+        var s = JSON.parse(raw);
+        var users = api.loadUsers();
+        if (s && s.u && users[s.u]) { signIn(s.u, users[s.u].name); return; }
+      } catch (e) {}
+    }
+    authScreen.classList.remove("hidden");
+  })();
+})();
+</script>
+</body>
+</html>
